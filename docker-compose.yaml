@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: inovabank-postgres
+    environment:
+      POSTGRES_DB: InovaBankDb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mongodb:
+    image: mongo:latest
+    container_name: inovabank-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: inovabank-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  redis:
+    image: redis:7-alpine
+    container_name: inovabank-redis
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inovabank-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Host=postgres;Database=InovaBankDb;Username=admin;Password=password
+      - ConnectionStrings__Mongo=mongodb://mongodb:27017
+      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - mongodb
+      - rabbitmq
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PROJECT_PATH: InovaBank.Worker
+    container_name: inovabank-worker
+    environment:
+      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - rabbitmq
+      - mongodb
+
+volumes:
+  postgres_data:
+  mongo_data:
+  rabbitmq_data:
