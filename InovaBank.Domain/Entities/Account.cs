@@ -8,17 +8,19 @@ public class Account : Entity
     public Cnpj Cnpj { get; private set; }
     public string RazaoSocial { get; private set; }
     public string Agencia { get; private set; }
+    public string ImagemDocumentoPath { get; private set; }
     public decimal Balance { get; private set; }
     public AccountStatus Status { get; private set; }
 
     public bool CanPerformTransactions => Status == AccountStatus.Ativa;
 
-    public Account(Cnpj cnpj, string razaoSocial, string agencia)
+    public Account(Cnpj cnpj, string razaoSocial, string agencia, string imagemDocumentoPath)
     {
         Id = Guid.NewGuid();
         Cnpj = cnpj;
         RazaoSocial = razaoSocial;
         Agencia = agencia;
+        ImagemDocumentoPath = imagemDocumentoPath;
         Balance = 0;
         Status = AccountStatus.Ativa;
     }
