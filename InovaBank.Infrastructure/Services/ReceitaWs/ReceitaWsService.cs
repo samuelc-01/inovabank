@@ -5,10 +5,15 @@ using InovaBank.Domain.ValueObjects;
 
 namespace InovaBank.Infrastructure.Services.ReceitaWs;
 
-public sealed class ReceitaWsService(HttpClient httpClient) : IReceitaWsService
+public sealed class ReceitaWsService(HttpClient httpClient, ICacheService cache) : IReceitaWsService
 {
     public async Task<Result<ReceitaWsResult>> GetCompanyByCnpjAsync(Cnpj cnpj, CancellationToken ct)
     {
+        var cacheKey = $"cnpj:{cnpj.Number}";
+
+        var cachedResult = await cache.GetAsync<ReceitaWsResult>(cacheKey, ct);
+        if (cachedResult is not null) return Result<ReceitaWsResult>.Success(cachedResult);
+
         try
         {
             var response = await httpClient.GetAsync($"v1/cnpj/{cnpj.Number}", ct);
@@ -21,7 +26,11 @@ public sealed class ReceitaWsService(HttpClient httpClient) : IReceitaWsService
             if (data == null || data.Status == "ERROR")
                 return Result<ReceitaWsResult>.Failure(data?.Message ?? "CNPJ não encontrado.", 404);
 
-            return Result<ReceitaWsResult>.Success(new ReceitaWsResult(data.Nome, data.Status));
+            var result = new ReceitaWsResult(data.Nome, data.Status);
+
+            await cache.SetAsync(cacheKey, result, TimeSpan.FromHours(24), ct);
+
+            return Result<ReceitaWsResult>.Success(result);
         }
         catch (Exception)
         {
