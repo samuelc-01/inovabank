@@ -9,6 +9,7 @@ namespace InovaBank.Application.Features.Accounts.Commands.OpenAccount;
 public sealed class OpenAccountHandler(
     IAccountRepository _repository,
     IReceitaWsService _receitaService,
+    IFileStorageService _fileStorageService,
     IUnitOfWork _unitOfWork) : IRequestHandler<OpenAccountCommand, Result<Guid>>
 {
     public async Task<Result<Guid>> Handle(OpenAccountCommand request, CancellationToken ct)
@@ -21,10 +22,14 @@ public sealed class OpenAccountHandler(
         if (receitaResult.IsFailure)
             return Result<Guid>.Failure(receitaResult.Error!, receitaResult.StatusCode);
 
+        var fileName = $"{Guid.NewGuid()}.jpg";
+        var imagePath = await _fileStorageService.UploadAsync(request.ImagemDocumento, fileName, ct);
+
         var account = new Account(
             cnpj,
             receitaResult.Value!.RazaoSocial,
-            request.Agencia);
+            request.Agencia,
+            imagePath);
 
         await _repository.AddAsync(account, ct);
         await _unitOfWork.SaveChangesAsync(ct);
