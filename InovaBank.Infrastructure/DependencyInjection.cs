@@ -1,6 +1,7 @@
 using InovaBank.Domain.Interfaces;
 using InovaBank.Infrastructure.Persistence;
 using InovaBank.Infrastructure.Persistence.Repositories;
+using InovaBank.Infrastructure.Services.Cache;
 using InovaBank.Infrastructure.Services.ReceitaWs;
 using InovaBank.Infrastructure.Services.Storage;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,14 @@ public static class DependencyInjection
     {
         services.AddDbContext<InovaBankDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("Postgres")));
+
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration.GetConnectionString("Redis");
+            options.InstanceName = "InovaBank:";
+        });
+
+        services.AddScoped<ICacheService, RedisCacheService>();
 
         services.AddHttpClient<IReceitaWsService, ReceitaWsService>(client =>
         {
