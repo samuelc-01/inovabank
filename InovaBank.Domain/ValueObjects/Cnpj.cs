@@ -27,6 +27,11 @@ public sealed record Cnpj
 
     public static bool IsValid(string cnpj)
     {
+        if (string.IsNullOrWhiteSpace(cnpj))
+            return false;
+
+        cnpj = Clean(cnpj);
+
         if (cnpj.Length != 14) return false;
 
         if (new string(cnpj[0], 14) == cnpj) return false;
@@ -38,20 +43,21 @@ public sealed record Cnpj
         int sum = 0;
 
         for (int i = 0; i < 12; i++)
-            sum += int.Parse(tempCnpj[i].ToString()) * multiplier1[i];
+            sum += (tempCnpj[i] - '0') * multiplier1[i];
 
         int remainder = sum % 11;
         int digit1 = remainder < 2 ? 0 : 11 - remainder;
 
         tempCnpj += digit1;
         sum = 0;
+
         for (int i = 0; i < 13; i++)
-            sum += int.Parse(tempCnpj[i].ToString()) * multiplier2[i];
+            sum += (tempCnpj[i] - '0') * multiplier2[i];
 
         remainder = sum % 11;
         int digit2 = remainder < 2 ? 0 : 11 - remainder;
 
-        return cnpj.EndsWith(digit1.ToString() + digit2.ToString());
+        return cnpj.EndsWith($"{digit1}{digit2}");
     }
 
     public static implicit operator string(Cnpj cnpj) => cnpj.Number;
