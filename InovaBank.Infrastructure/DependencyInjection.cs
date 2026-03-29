@@ -2,6 +2,7 @@ using InovaBank.Domain.Interfaces;
 using InovaBank.Infrastructure.Persistence;
 using InovaBank.Infrastructure.Persistence.Repositories;
 using InovaBank.Infrastructure.Services.ReceitaWs;
+using InovaBank.Infrastructure.Services.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<InovaBankDbContext>());
 
         services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
         return services;
     }

@@ -20,6 +20,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.HasIndex(a => a.Cnpj).IsUnique();
 
         builder.Property(a => a.RazaoSocial).IsRequired().HasMaxLength(200);
+        builder.Property(a => a.ImagemDocumentoPath).IsRequired().HasMaxLength(250);
         builder.Property(a => a.Agencia).IsRequired().HasMaxLength(4);
         builder.Property(a => a.Balance).HasPrecision(18, 2);
         builder.Property(a => a.Status).HasConversion<string>();
