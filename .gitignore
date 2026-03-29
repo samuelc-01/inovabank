@@ -1,3 +1,6 @@
 **/obj
 **/bin
+**/.zed
+**/.vs
+**/.vscode
 setup.sh
