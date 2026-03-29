@@ -18,6 +18,12 @@ RUN dotnet publish "InovaBank.Api.csproj" -c Release -o /app/publish /p:UseAppHo
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-EXPOSE 8080
+
 COPY --from=publish /app/publish .
+
+USER root
+RUN mkdir -p /app/wwwroot/documents && chmod 777 /app/wwwroot/documents
+USER $APP_USER
+
+EXPOSE 8080
 ENTRYPOINT ["dotnet", "InovaBank.Api.dll"]

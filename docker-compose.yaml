@@ -46,6 +46,8 @@ services:
       - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
     ports:
       - "8080:8080"
+    volumes:
+      - ./storage/documents:/app/wwwroot/documents
     depends_on:
       - postgres
       - mongodb
