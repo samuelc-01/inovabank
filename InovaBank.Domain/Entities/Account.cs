@@ -1,4 +1,5 @@
 using InovaBank.Domain.Enums;
+using InovaBank.Domain.Primitives;
 using InovaBank.Domain.ValueObjects;
 
 namespace InovaBank.Domain.Entities;
@@ -27,38 +28,44 @@ public class Account : Entity
 
     private Account() { }
 
-    public void Deposit(decimal amount)
+    public Result Deposit(decimal amount)
     {
         if (!CanPerformTransactions)
-            throw new InvalidOperationException("Conta não permite depósitos no status atual.");
+            return Result.Failure("Conta não permite depósitos no status atual.");
 
         Balance += amount;
+
+        return Result.Success();
     }
 
-    public void Withdraw(decimal amount)
+    public Result Withdraw(decimal amount)
     {
         if (!CanPerformTransactions)
-            throw new InvalidOperationException("Conta não permite saques no status atual.");
+            return Result.Failure("Conta não permite saques no status atual.");
 
         if (amount > Balance)
-            throw new InvalidOperationException("Saldo insuficiente.");
+            return Result.Failure("Saldo insuficiente.");
 
         Balance -= amount;
+
+        return Result.Success();
     }
 
-    public void ChangeStatus(AccountStatus newStatus)
+    public Result ChangeStatus(AccountStatus newStatus)
     {
         if (Status == AccountStatus.Encerrada)
-            throw new InvalidOperationException("Não é possível alterar o status de uma conta encerrada.");
+            return Result.Failure("Não é possível alterar o status de uma conta encerrada.");
 
         Status = newStatus;
+        return Result.Success();
     }
 
-    public void Close()
+    public Result Close()
     {
         if (Balance != 0)
-            throw new InvalidOperationException("Só é possível encerrar contas com saldo zero.");
+            return Result.Failure("Só é possível encerrar contas com saldo zero.");
 
         Status = AccountStatus.Encerrada;
+        return Result.Success();
     }
 }
