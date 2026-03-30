@@ -1,7 +1,7 @@
 namespace InovaBank.Domain.Entities;
 
-public class Entity
+public abstract class Entity
 {
-    public Guid Id { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public Guid Id { get; protected set; }
+    public DateTime CreatedAt { get; protected set; } = DateTime.UtcNow;
 }

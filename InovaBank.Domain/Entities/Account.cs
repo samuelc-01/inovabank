@@ -30,6 +30,9 @@ public class Account : Entity
 
     public Result Deposit(decimal amount)
     {
+        if (amount <= 0)
+            return Result.Failure("Valor do depósito deve ser maior que zero");
+
         if (!CanPerformTransactions)
             return Result.Failure("Conta não permite depósitos no status atual.");
 
@@ -40,6 +43,9 @@ public class Account : Entity
 
     public Result Withdraw(decimal amount)
     {
+        if (amount <= 0)
+            return Result.Failure("Valor do saque deve ser maior que zero");
+
         if (!CanPerformTransactions)
             return Result.Failure("Conta não permite saques no status atual.");
 
