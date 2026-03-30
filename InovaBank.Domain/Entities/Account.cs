@@ -15,6 +15,9 @@ public class Account : Entity
 
     public bool CanPerformTransactions => Status == AccountStatus.Ativa;
 
+    private readonly List<Transaction> _transactions = [];
+    public IReadOnlyCollection<Transaction> Transactions => _transactions;
+
     public Account(Cnpj cnpj, string razaoSocial, string agencia, string imagemDocumentoPath)
     {
         Id = Guid.NewGuid();
@@ -57,6 +60,31 @@ public class Account : Entity
         return Result.Success();
     }
 
+    public Result Credit(decimal amount, string currency, string description)
+    {
+        if (!CanPerformTransactions)
+            return Result.Failure("Conta bloqueada ou encerrada.", 400);
+
+        Balance += amount;
+        _transactions.Add(new Transaction(Id, amount, currency, TransactionType.Deposito, description));
+
+        return Result.Success();
+    }
+
+    public Result Debit(decimal amount, string currency, string description)
+    {
+        if (!CanPerformTransactions)
+            return Result.Failure("Conta bloqueada ou encerrada.", 400);
+
+        if (Balance < amount)
+            return Result.Failure("Saldo insuficiente.", 400);
+
+        Balance -= amount;
+        _transactions.Add(new Transaction(Id, amount, currency, TransactionType.Saque, description));
+
+        return Result.Success();
+    }
+
     public Result ChangeStatus(AccountStatus newStatus)
     {
         if (Status == AccountStatus.Encerrada)
@@ -68,6 +96,9 @@ public class Account : Entity
 
     public Result Close()
     {
+        if (Status == AccountStatus.Encerrada)
+            return Result.Failure("Conta já encerrada.");
+
         if (Balance != 0)
             return Result.Failure("Só é possível encerrar contas com saldo zero.");
 
