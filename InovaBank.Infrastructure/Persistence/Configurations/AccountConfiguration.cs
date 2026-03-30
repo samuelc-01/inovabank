@@ -9,7 +9,11 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
 {
     public void Configure(EntityTypeBuilder<Account> builder)
     {
-        builder.ToTable("Accounts");
+        builder.ToTable("Accounts", t =>
+        {
+            t.HasCheckConstraint("CK_Accounts_Balance_NonNegative", "\"Balance\" >= 0");
+        });
+
         builder.HasKey(a => a.Id);
 
         builder.Property(a => a.Cnpj)
@@ -24,5 +28,6 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(a => a.Agencia).IsRequired().HasMaxLength(4);
         builder.Property(a => a.Balance).HasPrecision(18, 2);
         builder.Property(a => a.Status).HasConversion<string>();
+        builder.Property(a => a.CreatedAt).IsRequired().HasDefaultValueSql("NOW() AT TIME ZONE 'UTC'").ValueGeneratedOnAdd();
     }
 }
