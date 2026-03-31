@@ -5,6 +5,7 @@ using InovaBank.Application.Features.Accounts.Commands.OpenAccount;
 using InovaBank.Application.Features.Accounts.Queries.GetAccountByCnpj;
 using InovaBank.Application.Features.Accounts.Queries.GetAccountById;
 using InovaBank.Application.Features.Transactions.Commands.Deposit;
+using InovaBank.Application.Features.Transactions.Commands.Withdraw;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -53,6 +54,20 @@ public sealed class AccountsController(IMediator _mediator) : ApiControllerBase
     public async Task<IActionResult> Deposit(string id, [FromBody] DepositRequest request)
     {
         var command = new DepositCommand(
+            id,
+            request.IdempotencyKey,
+            request.Valor,
+            request.Moeda,
+            request.Descricao);
+
+        var result = await _mediator.Send(command);
+        return HandleResult(result);
+    }
+
+    [HttpPost("{id}/withdraw")]
+    public async Task<IActionResult> Withdraw(string id, [FromBody] WithdrawRequest request)
+    {
+        var command = new WithdrawCommand(
             id,
             request.IdempotencyKey,
             request.Valor,
