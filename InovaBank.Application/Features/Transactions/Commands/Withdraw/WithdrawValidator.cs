@@ -7,8 +7,8 @@ public sealed class WithdrawValidator : AbstractValidator<WithdrawCommand>
     public WithdrawValidator()
     {
         RuleFor(x => x.AccountId)
-            .NotEmpty().WithMessage("O ID é obrigatório como parâmetro.")
-            .Must(BeAValidGuid).WithMessage("O formato do ID fornecido é inválido.");
+            .NotEmpty().WithMessage("A identificação da conta de origem é obrigatória.")
+            .Must(BeAValidGuid).WithMessage("O formato da conta de origem é inválido");
 
         RuleFor(x => x.Valor)
             .GreaterThan(0).WithMessage("O valor do saque deve ser maior que zero.");
@@ -17,7 +17,7 @@ public sealed class WithdrawValidator : AbstractValidator<WithdrawCommand>
             .Equal("BRL").WithMessage("No momento, apenas a moeda 'BRL' é suportada.");
 
         RuleFor(x => x.IdempotencyKey)
-            .NotEmpty().WithMessage("A chave de idempotência (idempotencyKey) é obrigatória.");
+            .NotEmpty().WithMessage("A chave de idempotência é obrigatória para esta operação.");
     }
 
     private bool BeAValidGuid(string id) => Guid.TryParse(id, out _);

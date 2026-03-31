@@ -7,8 +7,8 @@ public sealed class DepositValidator : AbstractValidator<DepositCommand>
     public DepositValidator()
     {
         RuleFor(x => x.AccountId)
-            .NotEmpty().WithMessage("O ID é obrigatório como parâmetro.")
-            .Must(BeAValidGuid).WithMessage("O formato do ID fornecido é inválido.");
+            .NotEmpty().WithMessage("A identificação da conta de destino é obrigatória.")
+            .Must(BeAValidGuid).WithMessage("O formato da conta de destino é inválido");
 
         RuleFor(x => x.Valor)
             .GreaterThan(0).WithMessage("O valor do depósito deve ser maior que zero.");
@@ -17,7 +17,7 @@ public sealed class DepositValidator : AbstractValidator<DepositCommand>
             .Equal("BRL").WithMessage("No momento, apenas a moeda 'BRL' é suportada.");
 
         RuleFor(x => x.IdempotencyKey)
-            .NotEmpty().WithMessage("A chave de idempotência (idempotencyKey) é obrigatória.");
+            .NotEmpty().WithMessage("A chave de idempotência é obrigatória para esta operação.");
 
         RuleFor(x => x.Descricao)
             .MaximumLength(100).WithMessage("A descrição deve ter no máximo 100 caracteres.");
