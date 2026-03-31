@@ -34,10 +34,10 @@ public class Account : Entity
     public Result Deposit(decimal amount)
     {
         if (amount <= 0)
-            return Result.Failure("Valor do depósito deve ser maior que zero");
+            return Result.Failure("Valor do depósito deve ser maior que zero", 422);
 
         if (!CanPerformTransactions)
-            return Result.Failure("Conta não permite depósitos no status atual.");
+            return Result.Failure("Conta não permite depósitos no status atual.", 422);
 
         Balance += amount;
 
@@ -47,13 +47,13 @@ public class Account : Entity
     public Result Withdraw(decimal amount)
     {
         if (amount <= 0)
-            return Result.Failure("Valor do saque deve ser maior que zero");
+            return Result.Failure("Valor do saque deve ser maior que zero", 422);
 
         if (!CanPerformTransactions)
-            return Result.Failure("Conta não permite saques no status atual.");
+            return Result.Failure("Conta não permite saques no status atual.", 422);
 
         if (amount > Balance)
-            return Result.Failure("Saldo insuficiente.");
+            return Result.Failure("Saldo insuficiente.", 422);
 
         Balance -= amount;
 
@@ -63,7 +63,7 @@ public class Account : Entity
     public Result Credit(decimal amount, string currency, string description)
     {
         if (!CanPerformTransactions)
-            return Result.Failure("Conta bloqueada ou encerrada.", 400);
+            return Result.Failure("Conta bloqueada ou encerrada.", 422);
 
         Balance += amount;
         _transactions.Add(new Transaction(Id, amount, currency, TransactionType.Deposito, description));
@@ -74,10 +74,10 @@ public class Account : Entity
     public Result Debit(decimal amount, string currency, string description)
     {
         if (!CanPerformTransactions)
-            return Result.Failure("Conta bloqueada ou encerrada.", 400);
+            return Result.Failure("Conta bloqueada ou encerrada.", 422);
 
         if (Balance < amount)
-            return Result.Failure("Saldo insuficiente.", 400);
+            return Result.Failure("Saldo insuficiente.", 422);
 
         Balance -= amount;
         _transactions.Add(new Transaction(Id, amount, currency, TransactionType.Saque, description));
@@ -88,7 +88,7 @@ public class Account : Entity
     public Result ChangeStatus(AccountStatus newStatus)
     {
         if (Status == AccountStatus.Encerrada)
-            return Result.Failure("Não é possível alterar o status de uma conta encerrada.");
+            return Result.Failure("Não é possível alterar o status de uma conta encerrada.", 422);
 
         Status = newStatus;
         return Result.Success();
@@ -97,10 +97,10 @@ public class Account : Entity
     public Result Close()
     {
         if (Status == AccountStatus.Encerrada)
-            return Result.Failure("Conta já encerrada.");
+            return Result.Failure("Conta já encerrada.", 422);
 
         if (Balance != 0)
-            return Result.Failure("Só é possível encerrar contas com saldo zero.");
+            return Result.Failure("Só é possível encerrar contas com saldo zero.", 422);
 
         Status = AccountStatus.Encerrada;
         return Result.Success();
