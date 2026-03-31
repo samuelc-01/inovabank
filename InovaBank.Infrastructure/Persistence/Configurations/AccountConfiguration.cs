@@ -16,6 +16,14 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.HasKey(a => a.Id);
 
+        builder.HasMany(a => a.Transactions)
+            .WithOne()
+            .HasForeignKey(t => t.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        var navigation = builder.Metadata.FindNavigation(nameof(Account.Transactions));
+        navigation?.SetPropertyAccessMode(PropertyAccessMode.Field);
+
         builder.Property(a => a.Cnpj)
             .HasConversion(v => v.Number, v => new Cnpj(v))
             .IsRequired()

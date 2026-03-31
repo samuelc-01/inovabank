@@ -10,6 +10,7 @@ public sealed class TransactionConfiguration : IEntityTypeConfiguration<Transact
     {
         builder.ToTable("Transactions");
         builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).ValueGeneratedNever();
 
         builder.Property(t => t.Amount).HasPrecision(18, 2).IsRequired();
         builder.Property(t => t.Currency).HasMaxLength(3).IsRequired();

@@ -8,6 +8,7 @@ public sealed class InovaBankDbContext(DbContextOptions<InovaBankDbContext> opti
     : DbContext(options), IUnitOfWork
 {
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<Transaction> Transactions => Set<Transaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
