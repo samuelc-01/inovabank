@@ -50,6 +50,6 @@ public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidat
             .MakeGenericType(resultType)
             .GetMethod("Failure", [typeof(string), typeof(int)]);
 
-        return (TResponse)failureMethod!.Invoke(null, [message, 422])!;
+        return (TResponse)failureMethod!.Invoke(null, [message, 400])!;
     }
 }

@@ -14,12 +14,12 @@ public sealed class CloseAccountHandler(IAccountRepository _repository, IUnitOfW
         if (account is null) return Result<Unit>.Failure("Conta não encontrada.", 404);
 
         if (account.Balance != 0)
-            return Result<Unit>.Failure("A conta só pode ser encerrada se o saldo for zero.", 400);
+            return Result<Unit>.Failure("A conta só pode ser encerrada se o saldo for zero.", 422);
 
         var domainResult = account.Close();
 
         if (domainResult.IsFailure)
-            return Result<Unit>.Failure(domainResult.Error!, 400);
+            return Result<Unit>.Failure(domainResult.Error!, 422);
 
         await _unityOfWork.SaveChangesAsync(ct);
         return Result<Unit>.Success(Unit.Value);

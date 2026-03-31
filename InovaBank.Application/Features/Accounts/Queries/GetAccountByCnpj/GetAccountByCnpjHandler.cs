@@ -11,7 +11,7 @@ public sealed class GetAccountByCnpjHandler(IAccountRepository _repository) : IR
     public async Task<Result<AccountResponse>> Handle(GetAccountByCnpjQuery request, CancellationToken ct)
     {
         if (!Cnpj.IsValid(request.Cnpj))
-            return Result<AccountResponse>.Failure("CNPJ inválido.", 400);
+            return Result<AccountResponse>.Failure("CNPJ inválido.", 422);
 
         var account = await _repository.GetByCnpjAsync(new Cnpj(request.Cnpj), ct);
 
