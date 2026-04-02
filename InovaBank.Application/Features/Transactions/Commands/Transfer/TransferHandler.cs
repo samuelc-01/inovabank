@@ -1,10 +1,12 @@
+using InovaBank.Domain.Events.Transactions;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
+using MassTransit;
 using MediatR;
 
 namespace InovaBank.Application.Features.Transactions.Commands.Transfer;
 
-public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork _unityOfWork, ICacheService _cache) : IRequestHandler<TransferCommand, Result<Unit>>
+public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork _unityOfWork, ICacheService _cache, IPublishEndpoint _publishEndpoint) : IRequestHandler<TransferCommand, Result<Unit>>
 {
     public async Task<Result<Unit>> Handle(TransferCommand request, CancellationToken ct)
     {
@@ -36,6 +38,18 @@ public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork 
             return Result<Unit>.Failure(creditResult.Error!, creditResult.StatusCode);
 
         await _unityOfWork.SaveChangesAsync(ct);
+
+        var transaction = source.Transactions.Last();
+
+        await _publishEndpoint.Publish(new TransferCreatedEvent(
+            transaction.Id,
+            source.Id,
+            destination.Id,
+            request.Valor,
+            request.Moeda,
+            request.Descricao,
+            transaction.CreatedAt
+        ), ct);
 
         await _cache.SetAsync(cacheKey, true, TimeSpan.FromHours(24), ct);
 

@@ -1,10 +1,12 @@
+using InovaBank.Domain.Events.Transactions;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
 using MediatR;
+using MassTransit;
 
 namespace InovaBank.Application.Features.Transactions.Commands.Deposit;
 
-public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _unityOfWork, ICacheService _cache) : IRequestHandler<DepositCommand, Result<Unit>>
+public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _unityOfWork, ICacheService _cache, IPublishEndpoint _publishEndpoint) : IRequestHandler<DepositCommand, Result<Unit>>
 {
     public async Task<Result<Unit>> Handle(DepositCommand request, CancellationToken ct)
     {
@@ -16,7 +18,7 @@ public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _
         var guidId = Guid.Parse(request.AccountId);
 
         var account = await _repository.GetByIdAsync(guidId, ct);
-        if (account is null) 
+        if (account is null)
             return Result<Unit>.Failure("Conta não encontrada.", 404);
 
         var result = account.Credit(request.Valor, request.Moeda, request.Descricao);
@@ -24,6 +26,18 @@ public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _
             return Result<Unit>.Failure(result.Error!, result.StatusCode);
 
         await _unityOfWork.SaveChangesAsync(ct);
+
+        var transaction = account.Transactions.Last();
+
+        await _publishEndpoint.Publish(new TransactionCreatedEvent(
+            transaction.Id,
+            account.Id,
+            transaction.Amount,
+            transaction.Currency,
+            transaction.Type.ToString(),
+            transaction.Description,
+            transaction.CreatedAt
+        ), ct);
 
         await _cache.SetAsync(cacheKey, true, TimeSpan.FromHours(24), ct);
 
