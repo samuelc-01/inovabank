@@ -27,6 +27,11 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -38,21 +43,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        PROJECT_PATH: InovaBank.Api
     container_name: inovabank-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - PROJECT_DLL=InovaBank.Api.dll
       - ConnectionStrings__Postgres=Host=postgres;Database=InovaBankDb;Username=admin;Password=password
       - ConnectionStrings__Redis=redis:6379
-      - ConnectionStrings__Mongo=mongodb://mongodb:27017
-      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
+      - ConnectionStrings__MongoDb=mongodb://mongodb:27017
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
     ports:
       - "8080:8080"
-    volumes:
-      - ./storage/documents:/app/wwwroot/documents
     depends_on:
-      - postgres
-      - mongodb
-      - rabbitmq
+      postgres:
+        condition: service_started
+      mongodb:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   worker:
     build:
@@ -62,7 +74,9 @@ services:
         PROJECT_PATH: InovaBank.Worker
     container_name: inovabank-worker
     environment:
-      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
+      - PROJECT_DLL=InovaBank.Worker.dll
+      - ConnectionStrings__Mongo=mongodb://mongodb:27017
+      - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
     depends_on:
       - rabbitmq
       - mongodb
