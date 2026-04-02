@@ -1,6 +1,8 @@
 using FluentValidation;
 using InovaBank.Application.Behaviors;
 using InovaBank.Infrastructure;
+using InovaBank.Infrastructure.Persistence;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +12,20 @@ builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(InovaBank.Application.AssemblyReference).Assembly);
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+
+builder.Services.AddMassTransit(x =>
+{
+    x.AddEntityFrameworkOutbox<InovaBankDbContext>(o =>
+    {
+        o.UsePostgres();
+        o.UseBusOutbox();
+    });
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(builder.Configuration.GetConnectionString("RabbitMq"));
+    });
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
