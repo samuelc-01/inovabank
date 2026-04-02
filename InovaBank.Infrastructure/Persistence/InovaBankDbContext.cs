@@ -1,6 +1,7 @@
 using InovaBank.Domain.Entities;
 using InovaBank.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
 
 namespace InovaBank.Infrastructure.Persistence;
 
@@ -12,6 +13,10 @@ public sealed class InovaBankDbContext(DbContextOptions<InovaBankDbContext> opti
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
+
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(InovaBankDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
     }
