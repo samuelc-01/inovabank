@@ -20,11 +20,18 @@ builder.Services.AddMassTransit(x =>
     {
         o.UsePostgres();
         o.UseBusOutbox();
+        o.DisableInboxCleanupService();
+    });
+
+    x.AddConfigureEndpointsCallback((context, name, cfg) =>
+    {
+        cfg.UseEntityFrameworkOutbox<InovaBankDbContext>(context);
     });
 
     x.UsingRabbitMq((context, cfg) =>
     {
         cfg.Host(builder.Configuration.GetConnectionString("RabbitMq"));
+        cfg.ConfigureEndpoints(context);
     });
 });
 
