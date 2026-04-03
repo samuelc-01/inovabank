@@ -13,9 +13,7 @@ public sealed class InovaBankDbContext(DbContextOptions<InovaBankDbContext> opti
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddTransactionalOutboxEntities();
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(InovaBankDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
