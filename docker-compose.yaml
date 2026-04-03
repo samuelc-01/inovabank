@@ -75,7 +75,7 @@ services:
     container_name: inovabank-worker
     environment:
       - PROJECT_DLL=InovaBank.Worker.dll
-      - ConnectionStrings__Mongo=mongodb://mongodb:27017
+      - ConnectionStrings__MongoDb=mongodb://mongodb:27017
       - ConnectionStrings__RabbitMq=amqp://guest:guest@rabbitmq:5672
     depends_on:
       - rabbitmq
