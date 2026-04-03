@@ -1,10 +1,11 @@
 using InovaBank.Domain.Queries.ReadModels;
+using InovaBank.Domain.Primitives;
 
 namespace InovaBank.Domain.Interfaces;
 
 public interface IAccountReadRepository
 {
-    Task<IEnumerable<StatementReadModel>> GetStatementAsync(
+    Task<PagedResult<StatementReadModel>> GetStatementAsync(
         Guid accountId,
         DateTime? start,
         DateTime? end,
