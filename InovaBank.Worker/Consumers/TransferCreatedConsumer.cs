@@ -1,5 +1,5 @@
 using InovaBank.Domain.Events.Transactions;
-using InovaBank.Worker.Infrastructure;
+using InovaBank.Infrastructure.Persistence.MongoDb;
 using MassTransit;
 using MongoDB.Driver;
 

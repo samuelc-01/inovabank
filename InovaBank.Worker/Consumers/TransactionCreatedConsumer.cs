@@ -1,11 +1,11 @@
 using MassTransit;
 using MongoDB.Driver;
 using InovaBank.Domain.Events.Transactions;
-using InovaBank.Worker.Infrastructure;
+using InovaBank.Infrastructure.Persistence.MongoDb;
 
 namespace InovaBank.Worker.Consumers;
 
-public sealed class TransactionCreatedConsumer(MongoContext _mongoContext, ILogger<TransactionCreatedConsumer> _logger) : IConsumer<TransactionCreatedEvent>
+public sealed class TransactionCreatedConsumer(MongoContext _mongoContext) : IConsumer<TransactionCreatedEvent>
 {
     public async Task Consume(ConsumeContext<TransactionCreatedEvent> context)
     {
