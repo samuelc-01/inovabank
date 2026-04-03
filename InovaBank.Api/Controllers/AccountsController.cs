@@ -4,6 +4,8 @@ using InovaBank.Application.Features.Accounts.Commands.CloseAccount;
 using InovaBank.Application.Features.Accounts.Commands.OpenAccount;
 using InovaBank.Application.Features.Accounts.Queries.GetAccountByCnpj;
 using InovaBank.Application.Features.Accounts.Queries.GetAccountById;
+using InovaBank.Application.Features.Accounts.Queries.GetBalance;
+using InovaBank.Application.Features.Accounts.Queries.GetStatement;
 using InovaBank.Application.Features.Transactions.Commands.Deposit;
 using InovaBank.Application.Features.Transactions.Commands.Transfer;
 using InovaBank.Application.Features.Transactions.Commands.Withdraw;
@@ -34,6 +36,29 @@ public sealed class AccountsController(IMediator _mediator) : ApiControllerBase
     public async Task<IActionResult> GetByCnpj(string cnpj)
     {
         var result = await _mediator.Send(new GetAccountByCnpjQuery(cnpj));
+        return HandleResult(result);
+    }
+
+    [HttpGet("{id}/balance")]
+    public async Task<IActionResult> GetBalance([FromRoute] string id)
+    {
+        var result = await _mediator.Send(new GetBalanceQuery(id));
+
+        return HandleResult(result);
+    }
+
+    [HttpGet("{id}/statement")]
+    public async Task<IActionResult> GetStatement(
+        [FromRoute] string id,
+        [FromQuery] DateTime? dataInicio,
+        [FromQuery] DateTime? dataFim,
+        [FromQuery] string? tipo,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanhoPagina = 20)
+    {
+        var query = new GetStatementQuery(id, dataInicio, dataFim, tipo, pagina, tamanhoPagina);
+        var result = await _mediator.Send(query);
+
         return HandleResult(result);
     }
 
