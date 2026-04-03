@@ -10,4 +10,4 @@ public sealed record GetStatementQuery(
     DateTime? DataFim,
     string? Tipo,
     int Pagina,
-    int TamanhoPagina) : IRequest<Result<IEnumerable<StatementReadModel>>>;
+    int TamanhoPagina) : IRequest<Result<PagedResult<StatementReadModel>>>;

@@ -5,9 +5,9 @@ using MediatR;
 
 namespace InovaBank.Application.Features.Accounts.Queries.GetStatement;
 
-public sealed class GetStatementHandler(IAccountReadRepository _readRepository) : IRequestHandler<GetStatementQuery, Result<IEnumerable<StatementReadModel>>>
+public sealed class GetStatementHandler(IAccountReadRepository _readRepository) : IRequestHandler<GetStatementQuery, Result<PagedResult<StatementReadModel>>>
 {
-    public async Task<Result<IEnumerable<StatementReadModel>>> Handle(GetStatementQuery request, CancellationToken ct)
+    public async Task<Result<PagedResult<StatementReadModel>>> Handle(GetStatementQuery request, CancellationToken ct)
     {
         var guidId = Guid.Parse(request.Id);
 
@@ -22,7 +22,7 @@ public sealed class GetStatementHandler(IAccountReadRepository _readRepository) 
 
         var skip = (request.Pagina - 1) * request.TamanhoPagina;
 
-        var results = await _readRepository.GetStatementAsync(
+        var pagedResults = await _readRepository.GetStatementAsync(
             guidId,
             dataInicioUtc,
             dataFimUtc,
@@ -31,6 +31,6 @@ public sealed class GetStatementHandler(IAccountReadRepository _readRepository) 
             request.TamanhoPagina,
             ct);
 
-        return Result<IEnumerable<StatementReadModel>>.Success(results);
+        return Result<PagedResult<StatementReadModel>>.Success(pagedResults);
     }
 }
