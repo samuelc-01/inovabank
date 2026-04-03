@@ -1,5 +1,7 @@
+using InovaBank.Domain.Enums;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Queries.ReadModels;
+using InovaBank.Domain.Primitives;
 using InovaBank.Infrastructure.Persistence.MongoDb;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -8,7 +10,7 @@ namespace InovaBank.Infrastructure.Persistence.Repositories;
 
 public sealed class AccountReadRepository(MongoContext _context) : IAccountReadRepository
 {
-    public async Task<IEnumerable<StatementReadModel>> GetStatementAsync(
+    public async Task<PagedResult<StatementReadModel>> GetStatementAsync(
         Guid accountId, DateTime? start, DateTime? end, string? type, int skip, int take, CancellationToken ct)
     {
         var collection = _context.GetCollection<BsonDocument>("Statements");
@@ -17,7 +19,26 @@ public sealed class AccountReadRepository(MongoContext _context) : IAccountReadR
 
         if (start.HasValue) filter &= builder.Gte("CreatedAt", start.Value);
         if (end.HasValue) filter &= builder.Lte("CreatedAt", end.Value);
-        if (!string.IsNullOrEmpty(type)) filter &= builder.Eq("Type", type);
+        if (!string.IsNullOrEmpty(type) && Enum.TryParse<StatementType>(type, true, out var parsedType))
+        {
+            switch (parsedType)
+            {
+                case StatementType.Transferencia:
+                    filter &= builder.In("Type", new[]
+                    {
+                        "TransferenciaRecebida",
+                        "TransferenciaEnviada"
+                    });
+                    break;
+
+                case StatementType.Deposito:
+                case StatementType.Saque:
+                    filter &= builder.Eq("Type", parsedType.ToString());
+                    break;
+            }
+        }
+
+        var totalCount = await collection.CountDocumentsAsync(filter, cancellationToken: ct);
 
         var docs = await collection.Find(filter)
             .SortByDescending(x => x["CreatedAt"])
@@ -25,12 +46,14 @@ public sealed class AccountReadRepository(MongoContext _context) : IAccountReadR
             .Limit(take)
             .ToListAsync(ct);
 
-        return docs.Select(d => new StatementReadModel(
+        var items = docs.Select(d => new StatementReadModel(
             d["TransactionId"].AsGuid,
             d["Amount"].ToDecimal(),
             d["Type"].AsString,
             d["Description"].AsString,
             d["CreatedAt"].ToUniversalTime()));
+
+        return new PagedResult<StatementReadModel>(items, (skip / take) + 1, take, totalCount);
     }
 
     public async Task<BalanceReadModel?> GetBalanceAsync(Guid accountId, CancellationToken ct)
