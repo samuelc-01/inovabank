@@ -1,5 +1,6 @@
 using InovaBank.Domain.Interfaces;
 using InovaBank.Infrastructure.Persistence;
+using InovaBank.Infrastructure.Persistence.MongoDb;
 using InovaBank.Infrastructure.Persistence.Repositories;
 using InovaBank.Infrastructure.Services.Cache;
 using InovaBank.Infrastructure.Services.ReceitaWs;
@@ -36,7 +37,10 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<InovaBankDbContext>());
 
         services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<IAccountReadRepository, AccountReadRepository>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+
+        services.AddSingleton<MongoContext>();
 
         return services;
     }
