@@ -1,10 +1,8 @@
-using InovaBank.Worker;
+using InovaBank.Infrastructure.Persistence.MongoDb;
 using InovaBank.Worker.Consumers;
-using InovaBank.Worker.Infrastructure;
 using MassTransit;
 
 var builder = Host.CreateApplicationBuilder(args);
-builder.Services.AddHostedService<Worker>();
 
 builder.Services.AddSingleton<MongoContext>();
 
