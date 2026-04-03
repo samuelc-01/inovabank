@@ -1,215 +1,99 @@
-# Desafio Desenvolvedor Backend .NET — Plataforma Bancária
+# InovaBank - Plataforma Bancária
 
-## Definições
-
-- Leia **todo** o conteúdo antes de iniciar e busque entender de fato o desafio proposto.
-- Faça um clone desse repositório para iniciar o projeto. Lembre-se de deixar o seu repositório **privado** e compartilhar com a conta do GitHub [MarcosVRSDev](https://github.com/MarcosVRSDev).
-- Utilize **.NET 8** ou superior.
-- Suba o projeto utilizando **Docker Compose**; a aplicação deve subir completamente com um único `docker compose up`.
-- Documente a API com **Swagger/OpenAPI**.
+Uma plataforma robusta de contas bancárias desenvolvida com foco em escalabilidade, resiliência e integridade de dados.  
+O projeto utiliza DDD, CQRS e uma arquitetura orientada a eventos para garantir alta performance e consistência.
 
 ---
 
-## Desafio
+## Como Executar
 
-Desenvolva uma **Plataforma de Contas Bancárias** seguindo os princípios de **Domain-Driven Design (DDD)** e o padrão **CQRS (Command Query Responsibility Segregation)** com arquitetura orientada a eventos via **RabbitMQ**.
+O projeto foi totalmente containerizado. Para subir o ecossistema completo (API, Worker, Bancos e Broker), basta um único comando:
 
-Somente empresas podem abrir contas, identificadas por **CNPJ**.
-
----
-
-## Endpoints e Contratos
-
-> **Importante:** os campos dos requests abaixo são **obrigatórios**. Qualquer desvio de nomenclatura ou tipo será considerado erro de implementação. O formato e o contrato das respostas ficam a critério do candidato.
-
-### Contas
-
-#### `POST /api/v1/accounts` — Abrir conta
-
-**Request Body** (`application/json`):
-```json
-{
-  "cnpj": "11.222.333/0001-81",
-  "agencia": "0001",
-  "imagemDocumento": "<Base64 string>"
-}
+```bash
+docker compose up -d --build
 ```
 
-#### `GET /api/v1/accounts/{id}` — Obter conta por ID
+### Endpoints Principais
 
-#### `GET /api/v1/accounts/cnpj/{cnpj}` — Obter conta por CNPJ
-
-#### `PATCH /api/v1/accounts/{id}/status` — Alterar status da conta
-
-**Request Body**:
-```json
-{
-  "status": "Bloqueada"
-}
-```
-
-#### `DELETE /api/v1/accounts/{id}` — Encerrar conta
-
-- Só é possível encerrar conta com **saldo zero**.
-- Altera o status para `Encerrada` (soft delete).
+- **Swagger UI:** http://localhost:8080/swagger  
+- **RabbitMQ Management:** http://localhost:15672 (guest/guest)  
+- **API Base:** http://localhost:8080/api/v1  
 
 ---
 
-### Operações Financeiras
+## Arquitetura e Decisões
 
-#### `POST /api/v1/accounts/{id}/deposit` — Depósito
+### 1. CQRS (Command Query Responsibility Segregation)
 
-**Request Body**:
-```json
-{
-  "idempotencyKey": "chave-unica-gerada-pelo-cliente",
-  "valor": 500.00,
-  "moeda": "BRL",
-  "descricao": "Depósito inicial"
-}
-```
+Separei as operações de escrita (Commands) das operações de leitura (Queries).
 
-#### `POST /api/v1/accounts/{id}/withdraw` — Saque
-
-**Request Body**:
-```json
-{
-  "idempotencyKey": "chave-unica-gerada-pelo-cliente",
-  "valor": 200.00,
-  "moeda": "BRL",
-  "descricao": "Saque operacional"
-}
-```
-
-#### `POST /api/v1/accounts/{id}/transfer` — Transferência
-
-**Request Body**:
-```json
-{
-  "idempotencyKey": "chave-unica-gerada-pelo-cliente",
-  "contaDestinoId": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
-  "valor": 350.50,
-  "moeda": "BRL",
-  "descricao": "Pagamento de serviço"
-}
-```
+- **Write Side:** PostgreSQL para garantir transações ACID e integridade dos saldos.  
+- **Read Side:** MongoDB para consultas rápidas de extrato e saldo, utilizando modelos de leitura desnormalizados (Read Models).
 
 ---
 
-### Consultas (Read Side — MongoDB)
+### 2. Consistência Eventual com Transactional Outbox
 
-#### `GET /api/v1/accounts/{id}/balance` — Consultar saldo
+Para evitar a perda de eventos caso o Message Broker falhe, implementei o padrão Transactional Outbox via MassTransit.
 
-#### `GET /api/v1/accounts/{id}/statement` — Extrato
-
-**Query Parameters:**
-
-| Parâmetro    | Tipo       | Obrigatório | Descrição                              |
-|--------------|------------|-------------|----------------------------------------|
-| `dataInicio` | `string`   | Não         | Data inicial (ISO 8601: `YYYY-MM-DD`)  |
-| `dataFim`    | `string`   | Não         | Data final (ISO 8601: `YYYY-MM-DD`)    |
-| `tipo`       | `string`   | Não         | `Deposito`, `Saque` ou `Transferencia` |
-| `pagina`     | `int`      | Não         | Número da página (padrão: `1`)         |
-| `tamanhoPagina` | `int`   | Não         | Itens por página (padrão: `20`, máx: `100`) |
+- A mensagem do evento de transação é gravada na mesma transação do banco de dados relacional.  
+- Um serviço em background (Worker) garante a entrega dessas mensagens ao RabbitMQ.
 
 ---
 
-## Regras de Negócio
+### 3. Idempotência
 
-1. **CNPJ**: deve ser validado pelo dígito verificador antes de qualquer operação. O CNPJ deve existir e estar ativo na Receita Federal (consultar via [ReceitaWS API](https://developers.receitaws.com.br/#/operations/queryCNPJFree)).
-2. **RazaoSocial**: nunca é informada pelo usuário — deve ser obtida exclusivamente via ReceitaWS.
-3. **Saldo**: nunca pode ser negativo. Saques e transferências devem verificar saldo disponível antes de publicar o evento.
-4. **Idempotência**: operações financeiras devem ser idempotentes — o cliente deve fornecer um `idempotencyKey` único no corpo da requisição; reenvio com a mesma chave não deve gerar duplicidade.
-5. **Conta bloqueada ou encerrada**: não aceita novos depósitos, saques ou transferências.
-6. **Encerramento**: conta só pode ser encerrada com saldo igual a `0.00`.
-7. **Transferência**: ambas as contas (origem e destino) devem estar com status `Ativa`.
-8. **Consistência eventual**: como o processamento é assíncrono, o saldo e o extrato no MongoDB podem ter um atraso mínimo em relação à escrita no PostgreSQL.
+Operações financeiras utilizam uma `idempotencyKey` armazenada em Redis.
+
+- Impede duplicidade de depósitos ou saques  
+- Permite retransmissão segura de requisições
 
 ---
 
-## Requisitos Técnicos
+### 4. Validação e Domínio
 
-### Stack Obrigatória
-
-| Tecnologia              | Uso                                                     |
-|-------------------------|---------------------------------------------------------|
-| **.NET 8+**             | Runtime e framework principal                           |
-| **ASP.NET Core**        | API REST                                                |
-| **MediatR**             | Implementação de CQRS (Commands e Queries via Mediator) |
-| **Entity Framework Core** | ORM para o modelo de escrita (PostgreSQL)             |
-| **PostgreSQL**          | Banco de dados de escrita (Write Model)                 |
-| **RabbitMQ**            | Message broker para Domain Events                       |
-| **MongoDB**             | Banco de dados de leitura (Read Model / Projeções)      |
-| **FluentValidation**    | Validação de comandos e requests                        |
-| **Docker + Docker Compose** | Orquestração de todos os serviços                   |
-| **Swagger/OpenAPI**     | Documentação da API                                     |
-
-### Stack Recomendada (diferencial)
-
-| Tecnologia        | Uso                                            |
-|-------------------|------------------------------------------------|
-| **MassTransit**   | Abstração sobre RabbitMQ (consumers, retries)  |
-| **Serilog**       | Logging estruturado                            |
-| **Polly**         | Resiliência (retry, circuit breaker) para chamadas externas |
-| **Redis**         | Cache de respostas da ReceitaWS e idempotency store |
-| **xUnit + Moq**   | Testes unitários e de integração               |
-| **HealthChecks**  | Endpoints de saúde (`/health`)                 |
+- **CNPJ:** Validado via dígito verificador e enriquecido com dados da ReceitaWS  
+- **Regras de Negócio:** Centralizadas no Agregado de `Account`  
+  - Conta nunca fica com saldo negativo  
+  - Transferências apenas entre contas ativas  
 
 ---
 
-## Docker Compose
+### 5. Padronização de Respostas
 
-O `docker-compose.yml` deve orquestrar obrigatoriamente os serviços:
-
-- `api` — ASP.NET Core application
-- `worker` — Consumer de eventos RabbitMQ
-- `postgres` — Banco de escrita
-- `mongodb` — Banco de leitura
-- `rabbitmq` — Message broker (com management plugin habilitado)
+Utilizei de um `ApiControllerBase` com um método abstrato `HandleResult<T>`.
+- **Uniformidade:** Garante que todos os endpoints retornem um formato de resposta consistente ao usuário.
+- **Desacoplamento:** Centraliza a lógica de conversão entre os objetos Result da camada de Application e os ActionResults do ASP.NET Core (Ok, BadRequest, NotFound).
 
 ---
 
-## O que será Avaliado
+## Stack Tecnológica
 
-### Arquitetura e Design
-- Aplicação dos princípios de **DDD** (Aggregates, Value Objects, Domain Events, Ubiquitous Language).
-- Separação entre **Command Side** e **Query Side** (CQRS).
-- Uso de **Domain Events** e **Event-Driven Architecture** com RabbitMQ.
-- Consistência eventual entre Write Model (PostgreSQL) e Read Model (MongoDB).
-
-### Qualidade de Código
-- Legibilidade, nomenclatura e organização.
-- Uso de recursos modernos do **C#**.
-- Ausência de code smells.
-
-### Robustez e Resiliência
-- Validação dos inputs (FluentValidation).
-- Tratamento de erros e respostas padronizadas.
-- Idempotência nas operações financeiras.
-- Resiliência nas chamadas à ReceitaWS.
-
-### Infraestrutura e DevOps
-- `docker compose up` sobe toda a aplicação sem intervenção manual.
-- Documentação Swagger completa.
+| Tecnologia            | Função                                      |
+|----------------------|---------------------------------------------|
+| .NET 10              | Framework principal                         |
+| Entity Framework Core | ORM para PostgreSQL                        |
+| MongoDB Driver       | Persistência do Read Model                  |
+| MassTransit          | Abstração e resiliência para RabbitMQ       |
+| MediatR              | Implementação de CQRS e In-process messaging|
+| FluentValidation     | Validação rigorosa de inputs                |
+| Redis                | Cache distribuído e Idempotency Store       |
+| Polly                | Resiliência nas chamadas na API ReceitaWS   |
 
 ---
 
-## Critérios Eliminatórios
+## Melhorias Futuras
 
-- Não subir via Docker Compose.
-- Não implementar CQRS com separação de read/write models.
-- Não utilizar RabbitMQ para propagação de Domain Events.
-- Não implementar os campos dos requests exatamente como definidos neste documento.
+Caso houvesse mais tempo para o desafio, os próximos passos seriam:
+
+- **Observabilidade:** OpenTelemetry + Jaeger (Distributed Tracing)  
+- **Dead Letter Queues (DLQ):** Interface para reprocessamento manual  
+- **Segurança:** OAuth2/JWT para proteção dos endpoints  
+- **Testes de Integração:** TestContainers para validar fluxo completo  
+- **Gestão de Incidentes:** Integração com Trello API para abertura automática de cards em exceções críticas via IExceptionHandler.
 
 ---
 
-## Entrega
+## Autor
 
-1. Deixe o repositório **privado**.
-2. Compartilhe com [MarcosVRSDev](https://github.com/MarcosVRSDev).
-3. Inclua um `README.md` no repositório com:
-   - Instruções de como executar o projeto.
-   - Decisões arquiteturais relevantes.
-   - Melhorias futuras que implementaria com mais tempo.
-
-Qualquer dúvida pode ser enviada para o e-mail: marcos.rezende@inovamobil.com.br
+[Guilherme Pacheco](https://github.com/DFaltGP)
