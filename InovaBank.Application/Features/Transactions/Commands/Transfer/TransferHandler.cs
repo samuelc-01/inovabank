@@ -37,8 +37,6 @@ public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork 
         if (!creditResult.IsSuccess)
             return Result<Unit>.Failure(creditResult.Error!, creditResult.StatusCode);
 
-        await _unityOfWork.SaveChangesAsync(ct);
-
         var transaction = source.Transactions.Last();
 
         await _publishEndpoint.Publish(new TransferCreatedEvent(
@@ -50,6 +48,8 @@ public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork 
             request.Descricao,
             transaction.CreatedAt
         ), ct);
+
+        await _unityOfWork.SaveChangesAsync(ct);
 
         await _cache.SetAsync(cacheKey, true, TimeSpan.FromHours(24), ct);
 

@@ -25,8 +25,6 @@ public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _
         if (result.IsFailure)
             return Result<Unit>.Failure(result.Error!, result.StatusCode);
 
-        await _unityOfWork.SaveChangesAsync(ct);
-
         var transaction = account.Transactions.Last();
 
         await _publishEndpoint.Publish(new TransactionCreatedEvent(
@@ -38,6 +36,8 @@ public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _
             transaction.Description,
             transaction.CreatedAt
         ), ct);
+
+        await _unityOfWork.SaveChangesAsync(ct);
 
         await _cache.SetAsync(cacheKey, true, TimeSpan.FromHours(24), ct);
 

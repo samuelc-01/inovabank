@@ -26,19 +26,19 @@ public sealed class WithdrawHandler(IAccountRepository _repository, IUnitOfWork 
         if (result.IsFailure)
             return Result<Unit>.Failure(result.Error!, result.StatusCode);
 
-        await _unitOfWork.SaveChangesAsync(ct);
-
         var transaction = account.Transactions.Last();
 
         await _publishEndpoint.Publish(new TransactionCreatedEvent(
             transaction.Id,
             account.Id,
-            transaction.Amount,
+            -transaction.Amount,
             transaction.Currency,
             transaction.Type.ToString(),
             transaction.Description,
             transaction.CreatedAt
         ), ct);
+
+        await _unitOfWork.SaveChangesAsync(ct);
 
         await _cache.SetAsync(cacheKey, true, TimeSpan.FromHours(24), ct);
 
