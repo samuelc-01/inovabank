@@ -18,5 +18,16 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
+builder.Host.UseSerilog((context, config) =>
+{
+    config
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("ServiceName", "InovaBank.Worker")
+        .WriteTo.Console(outputTemplate:
+            "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} " +
+            "[TraceId:{TraceId} SpanId:{TraceId}]{NewLine}{Exception}");
+});
+
 var host = builder.Build();
 host.Run();

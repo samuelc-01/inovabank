@@ -56,6 +56,18 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(xmlPath);
 });
 
+
+builder.Host.UseSerilog((context, config) =>
+{
+    config
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("ServiceName", "InovaBank.Api")
+        .WriteTo.Console(outputTemplate:
+            "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} " +
+            "[TraceId:{TraceId} SpanId:{SpanId}]{NewLine}{Exception}");
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
