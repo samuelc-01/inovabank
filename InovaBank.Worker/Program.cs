@@ -1,6 +1,7 @@
 using InovaBank.Infrastructure.Persistence.MongoDb;
 using InovaBank.Worker.Consumers;
 using MassTransit;
+using InovaBank.Infrastructure.Telemetry;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -17,6 +18,8 @@ builder.Services.AddMassTransit(x =>
         cfg.ConfigureEndpoints(context);
     });
 });
+
+builder.Services.AddOpenTelemetry(builder.Configuration, "InovaBank.Worker");
 
 builder.Host.UseSerilog((context, config) =>
 {

@@ -16,17 +16,31 @@ public static class OpenTelemetryConfig
         IConfiguration configuration,
         string serviceName)
     {
-        var otelEndpoint = configuration.GetValue<string>("OpenTelemetry:Endpoint") ?? "http://localhost:4317";
+        var otelEndpoint = configuration.GetValue<string>("OpenTelemetry:Endpoint")
+                           ?? "http://localhost:4317";
 
         services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource)
-                .AddService(serviceName, serviceVersion: Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0")
+            .ConfigureResource(resource => resource
+                .AddService(serviceName, serviceVersion: Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0"))
             .WithTracing(tracing =>
             {
                 tracing
                     .AddSource("InovaBank")
                     .AddSource("MassTransit")
-                    .AddHttpClientInstrumentation();
-                    .AddEntityFrameworkCoreInstrumentation(options)
-            }
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation(options =>
+                    {
+                        options.SetDbStatementForText = true;
+                    })
+                    .AddOtlpExporter(options =>
+                    {
+                        options.Endpoint = new Uri(otelEndpoint);
+                    });
+            });
+
+        services.AddSingleton(ActivitySource);
+
+        return services;
+    }
 }

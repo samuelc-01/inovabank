@@ -4,6 +4,7 @@ using InovaBank.Infrastructure;
 using InovaBank.Infrastructure.Persistence;
 using MassTransit;
 using Microsoft.OpenApi;
+using InovaBank.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +57,7 @@ builder.Services.AddSwaggerGen(options =>
     options.IncludeXmlComments(xmlPath);
 });
 
+builder.Services.AddOpenTelemetry(builder.Configuration, "InovaBank.Api");
 
 builder.Host.UseSerilog((context, config) =>
 {
