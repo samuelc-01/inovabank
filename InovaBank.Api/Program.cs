@@ -7,6 +7,16 @@ using Microsoft.OpenApi;
 using InovaBank.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("Postgres")!;
+var redisConnection = builder.Configuration.GetConnectionString("Redis")!;
+var rabbitConnection = builder.Configuration.GetConnectionString("RabbitMq")!;
+
+builder.Services.AddHealthChecks()
+    .AddPostgres(connectionString, name: "Postgres")
+    .AddRedis(redisConnection, name: "Redis")
+    .AddRabbitMq(rabbitConnection, name: "RabbitMq");
+
+
 
 builder.Services.AddValidatorsFromAssembly(typeof(InovaBank.Application.AssemblyReference).Assembly);
 
@@ -80,6 +90,32 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                duration = e.Value.Duration.TotalMilliseconds,
+                description = e.Value.Description,
+                exception = e.Value.Exception?.Message
+            })
+        };
+        await context.Response.WriteAsJsonAsync(result);
+    }
+});
 app.UseHttpsRedirection();
 
 app.MapControllers();
