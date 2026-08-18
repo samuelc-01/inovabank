@@ -1,4 +1,5 @@
 using FluentValidation;
+using InovaBank.Api.Middleware;
 using InovaBank.Application.Behaviors;
 using InovaBank.Infrastructure;
 using InovaBank.Infrastructure.Persistence;
@@ -81,6 +82,8 @@ builder.Host.UseSerilog((context, config) =>
 });
 
 var app = builder.Build();
+
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
