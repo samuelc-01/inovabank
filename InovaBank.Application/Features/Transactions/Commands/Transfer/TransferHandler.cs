@@ -1,6 +1,7 @@
 using InovaBank.Domain.Events.Transactions;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
+using InovaBank.Infrastructure.Telemetry;
 using MassTransit;
 using MediatR;
 
@@ -10,6 +11,10 @@ public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork 
 {
     public async Task<Result<Unit>> Handle(TransferCommand request, CancellationToken ct)
     {
+        BankingMetrics.TransfersCompleted.Add(1,
+            new KeyValuePair<string, object?>("currency", request.Moeda));
+        BankingMetrics.TransactionAmount.Record(request.Valor);
+
         var cacheKey = $"idempotency:transfer:{request.IdempotencyKey}";
 
         if (await _cache.GetAsync<bool>(cacheKey, ct))
@@ -20,22 +25,37 @@ public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork 
 
         var source = await _repository.GetByIdAsync(sourceGuidId, ct);
         if (source is null)
+        {
+            BankingMetrics.TransfersFailed.Add(1);
             return Result<Unit>.Failure("Conta de origem não encontrada.", 404);
+        }
 
         var destination = await _repository.GetByIdAsync(destGuidId, ct);
         if (destination is null)
+        {
+            BankingMetrics.TransfersFailed.Add(1);
             return Result<Unit>.Failure("Conta de destino não encontrada.", 404);
+        }
 
         if (!source.CanPerformTransactions || !destination.CanPerformTransactions)
+        {
+            BankingMetrics.TransfersFailed.Add(1);
             return Result<Unit>.Failure("Ambas as contas devem estar ativas para realizar transferências.", 422);
+        }
 
         var debitResult = source.Debit(request.Valor, request.Moeda, $"Transf. Enviada: {request.Descricao}");
         if (!debitResult.IsSuccess)
+        {
+            BankingMetrics.TransfersFailed.Add(1);
             return Result<Unit>.Failure(debitResult.Error!, debitResult.StatusCode);
+        }
 
         var creditResult = destination.Credit(request.Valor, request.Moeda, $"Transf. Recebida: {request.Descricao}");
         if (!creditResult.IsSuccess)
+        {
+            BankingMetrics.TransfersFailed.Add(1);
             return Result<Unit>.Failure(creditResult.Error!, creditResult.StatusCode);
+        }
 
         var transaction = source.Transactions.Last();
 

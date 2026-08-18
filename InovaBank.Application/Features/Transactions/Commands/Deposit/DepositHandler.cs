@@ -1,6 +1,7 @@
 using InovaBank.Domain.Events.Transactions;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
+using InovaBank.Infrastructure.Telemetry;
 using MediatR;
 using MassTransit;
 
@@ -10,6 +11,10 @@ public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _
 {
     public async Task<Result<Unit>> Handle(DepositCommand request, CancellationToken ct)
     {
+        BankingMetrics.DepositsCompleted.Add(1,
+            new KeyValuePair<string, object?>("currency", request.Moeda));
+        BankingMetrics.TransactionAmount.Record(request.Valor);
+
         string cacheKey = $"idempotency:deposit:{request.IdempotencyKey}";
 
         if (await _cache.GetAsync<bool>(cacheKey, ct))
@@ -19,11 +24,17 @@ public sealed class DepositHandler(IAccountRepository _repository, IUnitOfWork _
 
         var account = await _repository.GetByIdAsync(guidId, ct);
         if (account is null)
+        {
+            BankingMetrics.TransfersFailed.Add(1);
             return Result<Unit>.Failure("Conta não encontrada.", 404);
+        }
 
         var result = account.Credit(request.Valor, request.Moeda, request.Descricao);
         if (result.IsFailure)
+        {
+            BankingMetrics.TransfersFailed.Add(1);
             return Result<Unit>.Failure(result.Error!, result.StatusCode);
+        }
 
         var transaction = account.Transactions.Last();
 

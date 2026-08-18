@@ -2,6 +2,7 @@ using InovaBank.Domain.Entities;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
 using InovaBank.Domain.ValueObjects;
+using InovaBank.Infrastructure.Telemetry;
 using MediatR;
 
 namespace InovaBank.Application.Features.Accounts.Commands.OpenAccount;
@@ -33,6 +34,8 @@ public sealed class OpenAccountHandler(
 
         await _repository.AddAsync(account, ct);
         await _unitOfWork.SaveChangesAsync(ct);
+
+        BankingMetrics.AccountsOpened.Add(1);
 
         return Result<Guid>.Created(account.Id);
     }
