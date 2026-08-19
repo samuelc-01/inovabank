@@ -7,16 +7,23 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-  otlp/jaeger:
+  debug:
+    verbosity: detailed
+
+  otlp_grpc/jaeger:
     endpoint: jaeger:4317
     tls:
       insecure: true
+
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: inovabank
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp/jaeger]
+      exporters: [debug, otlp_grpc/jaeger]
     metrics:
       receivers: [otlp]
-      exporters: [logging]
+      exporters: [debug, prometheus]

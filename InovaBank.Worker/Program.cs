@@ -2,8 +2,18 @@ using InovaBank.Infrastructure.Persistence.MongoDb;
 using InovaBank.Worker.Consumers;
 using MassTransit;
 using InovaBank.Infrastructure.Telemetry;
+using Serilog;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("ServiceName", "InovaBank.Worker")
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} " +
+        "[TraceId:{TraceId} SpanId:{SpanId}]{NewLine}{Exception}")
+    .CreateLogger();
 
 builder.Services.AddSingleton<MongoContext>();
 
@@ -21,16 +31,7 @@ builder.Services.AddMassTransit(x =>
 
 builder.Services.AddOpenTelemetry(builder.Configuration, "InovaBank.Worker");
 
-builder.Host.UseSerilog((context, config) =>
-{
-    config
-        .ReadFrom.Configuration(context.Configuration)
-        .Enrich.FromLogContext()
-        .Enrich.WithProperty("ServiceName", "InovaBank.Worker")
-        .WriteTo.Console(outputTemplate:
-            "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} " +
-            "[TraceId:{TraceId} SpanId:{TraceId}]{NewLine}{Exception}");
-});
+builder.Services.AddSerilog(dispose: true);
 
 var host = builder.Build();
 host.Run();

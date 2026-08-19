@@ -1,6 +1,6 @@
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
-using InovaBank.Infrastructure.Telemetry;
+using InovaBank.Domain.Telemetry;
 using MediatR;
 using MassTransit;
 using InovaBank.Domain.Events.Transactions;
@@ -11,10 +11,6 @@ public sealed class WithdrawHandler(IAccountRepository _repository, IUnitOfWork 
 {
     public async Task<Result<Unit>> Handle(WithdrawCommand request, CancellationToken ct)
     {
-        BankingMetrics.WithdrawalsCompleted.Add(1,
-            new KeyValuePair<string, object?>("currency", request.Moeda));
-        BankingMetrics.TransactionAmount.Record(request.Valor);
-
         var cacheKey = $"idempotency:withdraw:{request.IdempotencyKey}";
 
         if (await _cache.GetAsync<bool>(cacheKey, ct))
@@ -25,7 +21,7 @@ public sealed class WithdrawHandler(IAccountRepository _repository, IUnitOfWork 
         var account = await _repository.GetByIdAsync(guidId, ct);
         if (account is null)
         {
-            BankingMetrics.TransfersFailed.Add(1);
+            BankingMetrics.WithdrawalsFailed.Add(1);
             return Result<Unit>.Failure("Conta não encontrada.", 404);
         }
 
@@ -33,7 +29,7 @@ public sealed class WithdrawHandler(IAccountRepository _repository, IUnitOfWork 
 
         if (result.IsFailure)
         {
-            BankingMetrics.TransfersFailed.Add(1);
+            BankingMetrics.WithdrawalsFailed.Add(1);
             return Result<Unit>.Failure(result.Error!, result.StatusCode);
         }
 
@@ -50,6 +46,10 @@ public sealed class WithdrawHandler(IAccountRepository _repository, IUnitOfWork 
         ), ct);
 
         await _unitOfWork.SaveChangesAsync(ct);
+
+        BankingMetrics.WithdrawalsCompleted.Add(1,
+            new KeyValuePair<string, object?>("currency", request.Moeda));
+        BankingMetrics.TransactionAmount.Record(request.Valor);
 
         await _cache.SetAsync(cacheKey, true, TimeSpan.FromHours(24), ct);
 

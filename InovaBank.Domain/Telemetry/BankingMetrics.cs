@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace InovaBank.Infrastructure.Telemetry;
+namespace InovaBank.Domain.Telemetry;
 
 public static class BankingMetrics
 {
@@ -21,6 +21,12 @@ public static class BankingMetrics
 
     public static readonly Counter<long> TransfersFailed =
         Meter.CreateCounter<long>("inovabank.transfers.failed", "transfers");
+
+    public static readonly Counter<long> DepositsFailed =
+        Meter.CreateCounter<long>("inovabank.deposits.failed", "deposits");
+
+    public static readonly Counter<long> WithdrawalsFailed =
+        Meter.CreateCounter<long>("inovabank.withdrawals.failed", "withdrawals");
 
     public static readonly Histogram<decimal> TransactionAmount =
         Meter.CreateHistogram<decimal>("inovabank.transaction.amount", "BRL");

@@ -2,7 +2,7 @@ using InovaBank.Domain.Entities;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
 using InovaBank.Domain.ValueObjects;
-using InovaBank.Infrastructure.Telemetry;
+using InovaBank.Domain.Telemetry;
 using MediatR;
 
 namespace InovaBank.Application.Features.Accounts.Commands.OpenAccount;

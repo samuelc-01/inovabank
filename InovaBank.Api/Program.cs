@@ -4,7 +4,12 @@ using InovaBank.Application.Behaviors;
 using InovaBank.Infrastructure;
 using InovaBank.Infrastructure.Persistence;
 using MassTransit;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.OpenApi;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
 using InovaBank.Infrastructure.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,9 +18,9 @@ var redisConnection = builder.Configuration.GetConnectionString("Redis")!;
 var rabbitConnection = builder.Configuration.GetConnectionString("RabbitMq")!;
 
 builder.Services.AddHealthChecks()
-    .AddPostgres(connectionString, name: "Postgres")
-    .AddRedis(redisConnection, name: "Redis")
-    .AddRabbitMq(rabbitConnection, name: "RabbitMq");
+    .AddNpgSql(connectionString, name: "Postgres", tags: ["ready"])
+    .AddRedis(redisConnection, name: "Redis", tags: ["ready"])
+    .AddRabbitMQ(rabbitConnectionString: rabbitConnection, name: "RabbitMq", tags: ["ready"]);
 
 
 

@@ -1,7 +1,7 @@
 using InovaBank.Domain.Events.Transactions;
 using InovaBank.Domain.Interfaces;
 using InovaBank.Domain.Primitives;
-using InovaBank.Infrastructure.Telemetry;
+using InovaBank.Domain.Telemetry;
 using MassTransit;
 using MediatR;
 
@@ -11,10 +11,6 @@ public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork 
 {
     public async Task<Result<Unit>> Handle(TransferCommand request, CancellationToken ct)
     {
-        BankingMetrics.TransfersCompleted.Add(1,
-            new KeyValuePair<string, object?>("currency", request.Moeda));
-        BankingMetrics.TransactionAmount.Record(request.Valor);
-
         var cacheKey = $"idempotency:transfer:{request.IdempotencyKey}";
 
         if (await _cache.GetAsync<bool>(cacheKey, ct))
@@ -70,6 +66,10 @@ public sealed class TransferHandler(IAccountRepository _repository, IUnitOfWork 
         ), ct);
 
         await _unityOfWork.SaveChangesAsync(ct);
+
+        BankingMetrics.TransfersCompleted.Add(1,
+            new KeyValuePair<string, object?>("currency", request.Moeda));
+        BankingMetrics.TransactionAmount.Record(request.Valor);
 
         await _cache.SetAsync(cacheKey, true, TimeSpan.FromHours(24), ct);
 

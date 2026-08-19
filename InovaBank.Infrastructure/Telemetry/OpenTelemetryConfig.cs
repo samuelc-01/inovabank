@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Reflection;
+using InovaBank.Domain.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -21,18 +23,25 @@ public static class OpenTelemetryConfig
 
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
-                .AddService(serviceName, serviceVersion: Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "1.0.0"))
+                .AddService(serviceName))
             .WithTracing(tracing =>
             {
                 tracing
+                    .AddAspNetCoreInstrumentation()
                     .AddSource("InovaBank")
                     .AddSource("MassTransit")
-                    .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddEntityFrameworkCoreInstrumentation(options =>
+                    .AddEntityFrameworkCoreInstrumentation()
+                    .AddOtlpExporter(options =>
                     {
-                        options.SetDbStatementForText = true;
-                    })
+                        options.Endpoint = new Uri(otelEndpoint);
+                    });
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddMeter(BankingMetrics.MeterName)
+                    .AddMeter("MassTransit")
                     .AddOtlpExporter(options =>
                     {
                         options.Endpoint = new Uri(otelEndpoint);
